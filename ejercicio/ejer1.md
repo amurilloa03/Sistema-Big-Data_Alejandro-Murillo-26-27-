@@ -30,7 +30,13 @@ Utilizando el dossier:
 
 **Respuesta:**
 
+1. 
+- 1 El D4 tiene pocos sensores para 180.000 habitantes es demasiado para tan poco
+- 2 El D1 tiene demasiado par tan poco superfice ya que aunque son 80.000 la superficie es 4km cuadrado
 
+2. Necesita mayor atencion el D4 mas gente y mas superficie
+
+3. La D4 tiene mucha poblacion y actividad para se un sector industrial , la marcaria como dudosa
 
 ---
 
@@ -40,10 +46,10 @@ Completa esta tabla:
 
 | Criterio                      | Batch | Streaming |
 |-------------------------------|-------|-----------|
-| Rapidez para generar alertas  |       |           |
-| Coste y complejidad           |       |           |
-| Informes históricos           |       |           |
-| Picos de datos                |       |           |
+| Rapidez para generar alertas  | Lenta hay que esperar al siguien lote     | Rapida porque funciona al momento          |
+| Coste y complejidad           | Menor mas facil de montar y mantener      |  Mayor siempre encedidad y mayor coste         |
+| Informes históricos           | Procesa mas volumen de datos       | Procesa menos ya que tiene que ir rapido          |
+| Picos de datos                | Lo guarda y lo analiza o lo informa despues       | Lo procesa en tiempo real porque es necesario          |
 
 Indica qué alternativa usarías para las alertas y cuál para los informes históricos.
 
@@ -64,9 +70,9 @@ Redacta una recomendación para el ayuntamiento que incluya:
 - Una medida de privacidad.
 
 **Respuesta:**
+1. EL riesgo mas urgente esque en el sector D4 que es el mas poblacion tiene y el mas santritado y es el industrial por lo cual el que tiene mas riesgo de contaminacion a la gente 
 
-
-
+2. Mi actuacion seria intentar bajar el transito de coche o de contaminacion en las horas de mas gente 
 ---
 
 ## 5. Revisar y entregar (10 minutos)
