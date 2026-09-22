@@ -54,6 +54,7 @@ Completa esta tabla:
 Indica qué alternativa usarías para las alertas y cuál para los informes históricos.
 
 **Respuesta:**
+-Respuesta dentro de la tabla
 
 
 
@@ -72,13 +73,22 @@ Redacta una recomendación para el ayuntamiento que incluya:
 **Respuesta:**
 1. EL riesgo mas urgente esque en el sector D4 que es el mas poblacion tiene y el mas santritado y es el industrial por lo cual el que tiene mas riesgo de contaminacion a la gente 
 
-2. Mi actuacion seria intentar bajar el transito de coche o de contaminacion en las horas de mas gente 
+2. Mi actuacion seria intentar bajar el transito de coche o de contaminacion en las horas de mas gente para reduccir el riesgo de contaminanción a partir de particulas del aire
+
+3. 
+- 3.1 D4 concentra mucha población, tráfico y actividad industrial en el dossier pone 21 registro fuera de rango fisico en PM10 negativo es decir que puede entrar por las vias respiratorias.
+- 3.2 Datos ausentes !68 mediciones incompletas falta pm25 penetra mas profundo en el sistema respiratorio 
+- 3.3 En resultado pone huecos temporales 3 sensores sin transmitir mas de 30 minutos
+
+4. En el D6 seguira sin sensores y eso que hay unas 25000 personas
+
+5. Ya que la estaciones moviles pueden registrar las coordenas precisa de cada persona , se podria hacer una ruta masiva de movimientos de gran escala para saber mas detallado a que hora y que ruta siguen la mayoria de la gente , para intentar prevenir mayor riesgos asi 
 ---
 
 ## 5. Revisar y entregar (10 minutos)
 
 Comprueba que tus conclusiones se basan en el dossier y que diferencias los datos observados de tus opiniones.
 
-- [ ] Mis conclusiones se basan en el dossier.
-- [ ] Diferencio los datos observados de mis opiniones.
+- [✓] Mis conclusiones se basan en el dossier.
+- [✓] Diferencio los datos observados de mis opiniones.
 
