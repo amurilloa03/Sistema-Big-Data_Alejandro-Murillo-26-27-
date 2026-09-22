@@ -77,7 +77,7 @@ Redacta una recomendación para el ayuntamiento que incluya:
 
 3. 
 - 3.1 D4 concentra mucha población, tráfico y actividad industrial en el dossier pone 21 registro fuera de rango fisico en PM10 negativo es decir que puede entrar por las vias respiratorias.
-- 3.2 Datos ausentes !68 mediciones incompletas falta pm25 penetra mas profundo en el sistema respiratorio 
+- 3.2 Datos ausentes 168 mediciones incompletas falta pm25 penetra mas profundo en el sistema respiratorio 
 - 3.3 En resultado pone huecos temporales 3 sensores sin transmitir mas de 30 minutos
 
 4. En el D6 seguira sin sensores y eso que hay unas 25000 personas
