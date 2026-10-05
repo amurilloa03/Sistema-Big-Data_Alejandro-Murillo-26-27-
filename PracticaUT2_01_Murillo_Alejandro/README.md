@@ -295,37 +295,7 @@ Si hubiera muchos más datos, el `$group` tendría que leerse todas las reseñas
  
 ## 5. Seguridad y límites
  
-### Usuarios y permisos
- 
-- **app_tienda**: el que usa la web. Tiene `readWrite` solo en tienda_electronica, así que puede leer y escribir pero no crear usuarios ni tocar otras bases de datos.
-- **app_lectura**: solo `read`, para sacar informes.
-- **admin_bd**: para administrar (índices, validación...), con 2FA. La aplicación nunca lo usa.
-```js
-use admin
-db.createUser({
-  user: "app_tienda",
-  pwd: passwordPrompt(),
-  roles: [{ role: "readWrite", db: "tienda_electronica" }]
-})
-```
- 
-Con `passwordPrompt()` la contraseña se pide al ejecutarlo y no se queda escrita en el código.
- 
-### Qué cifrar, anonimizar o quitar
- 
-- **Cifrar**: la conexión con TLS y los datos en disco (en Atlas viene activado). Las contraseñas de los usuarios nunca en texto plano.
-- **Anonimizar**: antes de pasar la base de datos a pruebas cambiaría los nombres y emails por datos falsos (usuario1@test.com...).
-- **No guardar**: no guardo direcciones, teléfonos ni datos de pago. Si hicieran falta, nunca se copiarían a pruebas.
-### Cuándo no usaría MongoDB
- 
-1. **Para los pagos y los pedidos.** Cuando alguien paga hay que restar el stock, cobrar y crear el pedido a la vez, y si falla algo se tiene que deshacer todo. Para eso es mejor una base de datos relacional como PostgreSQL o MySQL, que está hecha para transacciones.
-2. **Para recomendaciones tipo "los que compraron esto también compraron...".** Son relaciones entre clientes y productos, y en MongoDB necesitaría un montón de `$lookup`. Una base de datos de grafos como Neo4j lo hace mucho mejor.
-### Datos históricos
- 
-- **Productos descatalogados**: los dejo con `activo: false` porque tienen reseñas y se pueden volver a vender.
-- **Reseñas**: se quedan mientras exista el producto.
-- **Usuarios que borran la cuenta**: borro sus datos personales y sus reseñas se quedan como "usuario anónimo", que es lo que pide el RGPD.
-- **Copias de seguridad**: guardo las de los últimos 30 días y las más antiguas se borran.
+
 ## 6. Revisión
  
 - Los scripts empiezan con la base de datos vacía.
