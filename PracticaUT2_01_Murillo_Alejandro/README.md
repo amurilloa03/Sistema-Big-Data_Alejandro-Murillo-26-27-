@@ -1,166 +1,85 @@
-# Práctica 01 · Base de datos documental con MongoDB
-
-**Alumno:** Alejandro Murillo  
-**Módulo:** Sistemas de Big Data · UT2  
-**Escenario:** Catálogo de una tienda de electrónica
-
----
-
-## Índice
-
-- [Cómo ejecutarlo](#cómo-ejecutarlo)
-- [1. Definir el problema y los accesos](#1-definir-el-problema-y-los-accesos)
-- [2. Diseño de las colecciones](#2-diseño-de-las-colecciones)
-- [3. Validación e índices](#3-validación-e-índices)
-- [4. Consultas y agregación](#4-consultas-y-agregación)
-- [5. Copias de seguridad, seguridad y límites](#5-copias-de-seguridad-seguridad-y-límites)
-- [6. Revisión](#6-revisión)
-
----
-
-## Cómo ejecutarlo
-
-### Requisitos
-
-- Docker (yo he usado la imagen `mongo:8.0`, **MongoDB 8.0**)
-- No hace falta instalar `mongosh` porque ya viene dentro del contenedor
-
-### Pasos
-
-```bash
-# 1. Arrancar MongoDB
-docker run -d --name mongo-practica -p 27017:27017 mongo:8.0
-
-# 2. Copiar los scripts dentro del contenedor
-docker cp scripts mongo-practica:/scripts
-
-# 3. Ejecutarlos EN ESTE ORDEN
-docker exec mongo-practica mongosh --quiet --file /scripts/01-colecciones-validacion.js
-docker exec mongo-practica mongosh --quiet --file /scripts/02-datos.js
-docker exec mongo-practica mongosh --quiet --file /scripts/03-indices.js
-docker exec mongo-practica mongosh --quiet --file /scripts/04-consultas.js
-```
-
-El script `01` borra la base de datos y la crea de cero, así que se puede repetir todo las veces que haga falta. La copia de seguridad se explica en [`scripts/05-backup.md`](scripts/05-backup.md).
-
-### Estructura del repositorio
-
-```
-PracticaUT2_01_Murillo_Alejandro/
-├── README.md                          ← este documento
-├── scripts/
-│   ├── 01-colecciones-validacion.js   ← crea las colecciones con $jsonSchema
-│   ├── 02-datos.js                    ← inserta los datos de prueba
-│   ├── 03-indices.js                  ← índices y explain antes/después
-│   ├── 04-consultas.js                ← CRUD, preguntas y agregación
-│   └── 05-backup.md                   ← copia y restauración
-├── docs/
-│   ├── modelo.md                      ← diagrama del modelo
-│   └── evidencias/                    ← capturas
-└── datos/
-    └── README.md                      ← de dónde salen los datos
-```
-
----
-
+# Práctica 01 - Base de datos documental con MongoDB
+ 
+Alejandro Murillo - Sistemas de Big Data (UT2)
+ 
+Escenario elegido: **catálogo de una tienda de electrónica**
+ 
 ## 1. Definir el problema y los accesos
-
-### 1.1 Escenario y usuarios
-
-El escenario es una **tienda online de electrónica** (móviles, portátiles, audio, televisores y accesorios) en la que los clientes buscan productos, miran sus variantes (color, capacidad…) y leen las reseñas de otros clientes.
-
-| Usuario | Qué hace |
-|---|---|
-| **Cliente** | Busca productos por categoría, marca, precio o nombre, mira el stock de cada variante y escribe reseñas |
-| **Administrador de la tienda** | Da de alta productos, cambia precios, actualiza el stock y revisa qué productos se están acabando |
-
-### 1.2 Preguntas de negocio
-
-| # | Pregunta |
-|---|---|
-| P1 | ¿Qué productos hay de una categoría, ordenados por precio? |
-| P2 | ¿Qué productos de una marca cuestan entre un precio mínimo y uno máximo? |
-| P3 | ¿Qué variantes tiene un producto y cuánto stock queda de cada una? |
-| P4 | ¿Cuáles son las últimas reseñas de un producto? |
-| P5 | ¿Cuál es la valoración media de cada producto? |
-| P6 | ¿Qué productos tienen poco stock (menos de 5 unidades)? |
-| P7 | ¿Qué productos contienen una palabra en su nombre (por ejemplo "inalámbrico")? |
-
-### 1.3 Datos que más se leen y se escriben
-
-- **Lo que más se lee:** el catálogo de productos, es decir, buscar productos, ver la ficha y comprobar si hay stock o no. Lo hace cualquier cliente que entra en la tienda.
-- **Lo que más se escribe:** el stock de las variantes (cada vez que alguien compra o llega mercancía) y las reseñas nuevas.
-- **Lo que se escribe menos:** añadir o quitar productos del catálogo y los cambios de precio.
-
-Se lee mucho más de lo que se escribe, así que me interesa que las lecturas sean rápidas (por eso las variantes van dentro del producto y hay índices).
-
-### 1.4 Tabla de preguntas y accesos
-
+ 
+### Escenario y usuarios
+ 
+El escenario es una tienda online de electrónica (móviles, portátiles, audio, televisores y accesorios) en la que los clientes buscan productos, miran los colores o capacidades que hay y leen las reseñas.
+ 
+Hay dos tipos de usuario:
+- **Cliente**: busca productos, mira el stock y escribe reseñas.
+- **Administrador**: añade productos, cambia precios, actualiza el stock y mira qué se está acabando.
+### Preguntas de negocio
+ 
+1. ¿Qué productos hay de una categoría, ordenados por precio?
+2. ¿Qué productos de una marca cuestan entre un precio mínimo y uno máximo?
+3. ¿Qué variantes tiene un producto y cuánto stock queda de cada una?
+4. ¿Cuáles son las últimas reseñas de un producto?
+5. ¿Cuál es la valoración media de cada producto?
+6. ¿Qué productos tienen poco stock (menos de 5 unidades)?
+7. ¿Qué productos contienen una palabra en su nombre (por ejemplo "inalámbrico")?
+### Datos que más se leen y escriben
+ 
+Lo que más se lee es el catálogo de productos, es decir, buscar productos, entrar a verlos y mirar si hay stock o no.
+ 
+Lo que más se escribe es el stock (cuando alguien compra o llega mercancía) y las reseñas nuevas. Añadir o quitar productos se hace menos.
+ 
+Como se lee mucho más de lo que se escribe, me interesa que leer sea rápido. Por eso he metido las variantes dentro del producto y he creado índices.
+ 
+### Tabla de preguntas
+ 
 | Pregunta | Colección | Filtros | Ordenación | Paginación |
 |---|---|---|---|---|
-| P1 | `productos` | `categoria` y `activo: true` | `precio` de mayor a menor (+ `_id` para desempatar) | Sí, con `skip` y `limit` |
-| P2 | `productos` | `marca`, `precio` entre mínimo y máximo (`$gte` y `$lte`) | `precio` de menor a mayor | Sí |
-| P3 | `productos` | `_id` del producto | — | No, es un solo documento |
-| P4 | `resenas` + `usuarios` (`$lookup`) | `producto_id` | `fecha` de más nueva a más antigua | Sí, las 5 últimas |
-| P5 | `resenas` + `productos` (`$lookup`) | Todas las reseñas, agrupadas por producto | Media de mayor a menor | No (un resultado por producto) |
-| P6 | `productos` | `activo: true` y `variantes.stock < 5` | Stock de menor a mayor | No |
-| P7 | `productos` | Búsqueda de texto en `nombre` | Por relevancia | No |
-
-### 1.5 Requisitos
-
-- **Seguridad:** autenticación con usuario y contraseña, y **doble factor (2FA)** para los administradores. Cada parte de la aplicación tiene solo los permisos que necesita (ver apartado 5).
-- **Privacidad:** cumplir la ley (RGPD) al tratar información personal y pedir **solo los datos que son 100 % necesarios**. De los usuarios guardo nombre y email, nada más. En los datos de prueba todo es inventado.
-- **Disponibilidad:** tolerancia a fallos y redundancia. Usando un *replica set* (varios servidores con copia de los datos), si uno se cae otro ocupa su lugar y la tienda sigue funcionando.
-- **Crecimiento:** tener escalabilidad **vertical** (un servidor más potente) y **horizontal** (repartir los datos en varios servidores con *sharding*) para que sea lo más barato posible y pueda crecer con el tiempo. Las reseñas son lo que más crece, por eso van en su propia colección.
-
----
-
+| 1 | productos | categoria, activo | precio de mayor a menor | sí (skip y limit) |
+| 2 | productos | marca, precio entre mínimo y máximo | precio de menor a mayor | sí |
+| 3 | productos | _id del producto | no | no, es un solo producto |
+| 4 | resenas (+ usuarios) | producto_id | fecha, las más nuevas primero | las 5 últimas |
+| 5 | resenas (+ productos) | todas, agrupadas por producto | media de mayor a menor | no |
+| 6 | productos | activo y stock < 5 | stock de menor a mayor | no |
+| 7 | productos | buscar texto en el nombre | por relevancia | no |
+ 
+### Requisitos
+ 
+- **Seguridad**: autenticación con usuario y contraseña y 2FA (doble factor) para los administradores. Cada usuario de la base de datos tiene solo los permisos que necesita.
+- **Privacidad**: cumplir la ley (RGPD) al tratar información personal y pedir solo los datos que son 100% necesarios. De los usuarios solo guardo el nombre y el email.
+- **Disponibilidad**: tolerancia a fallos y redundancia. Con un replica set hay varias copias de los datos en distintos servidores, y si uno se cae sigue funcionando otro.
+- **Crecimiento**: tener escalabilidad vertical (un servidor más potente) y horizontal (repartir los datos entre varios servidores con sharding) para que sea lo más barato posible y pueda crecer con el tiempo.
 ## 2. Diseño de las colecciones
-
-### 2.1 Diagrama
-
-```mermaid
-erDiagram
-    PRODUCTOS ||--o{ RESENAS : "producto_id"
-    USUARIOS ||--o{ RESENAS : "usuario_id"
-    PRODUCTOS {
-        string _id "PROD-001"
-        string nombre
-        string marca
-        string categoria
-        double precio
-        bool activo
-        array variantes "dentro del producto"
-    }
-    USUARIOS {
-        string _id "USR-01"
-        string nombre
-        string email
-        string rol
-    }
-    RESENAS {
-        ObjectId _id
-        string producto_id
-        string usuario_id
-        int estrellas
-        string comentario
-        date fecha
-    }
+ 
+### Colecciones
+ 
+- **productos**: el catálogo. Cada producto lleva dentro sus variantes (color, capacidad y stock).
+- **usuarios**: los clientes y los administradores.
+- **resenas**: las opiniones de los clientes, de 1 a 5 estrellas.
+Esquema:
+ 
 ```
-
-### 2.2 Colecciones
-
-| Colección | Para qué sirve |
-|---|---|
-| `productos` | El catálogo. Cada producto lleva dentro sus variantes (color, capacidad y stock) |
-| `usuarios` | Los clientes y administradores de la tienda |
-| `resenas` | Las opiniones de los clientes sobre los productos (de 1 a 5 estrellas) |
-
-### 2.3 Documentos de ejemplo
-
-<details>
-<summary><b>productos</b></summary>
-
+productos                   resenas                    usuarios
+---------                   -------                    --------
+_id (PROD-001)  <--------   producto_id                _id (USR-01)
+nombre                      usuario_id     -------->   nombre
+marca                       estrellas                  email
+categoria                   comentario                 rol
+precio                      fecha                      fecha_registro
+activo
+fecha_alta
+variantes [ ]  (dentro del producto)
+   sku
+   color
+   capacidad
+   stock
+```
+ 
+Un producto puede tener muchas reseñas y un usuario puede escribir muchas reseñas.
+ 
+### Documentos de ejemplo
+ 
+Producto:
+ 
 ```json
 {
   "_id": "PROD-001",
@@ -176,11 +95,9 @@ erDiagram
   ]
 }
 ```
-</details>
-
-<details>
-<summary><b>usuarios</b></summary>
-
+ 
+Usuario:
+ 
 ```json
 {
   "_id": "USR-01",
@@ -190,11 +107,9 @@ erDiagram
   "fecha_registro": { "$date": "2025-11-02T00:00:00Z" }
 }
 ```
-</details>
-
-<details>
-<summary><b>resenas</b></summary>
-
+ 
+Reseña:
+ 
 ```json
 {
   "_id": { "$oid": "6701a2c4e1b2c3d4e5f60718" },
@@ -205,117 +120,158 @@ erDiagram
   "fecha": { "$date": "2026-09-01T00:00:00Z" }
 }
 ```
-</details>
-
-### 2.4 ¿Incrustar o referenciar?
-
-**Variantes → INCRUSTADAS dentro del producto**
-
-| Criterio | Motivo |
-|---|---|
-| Tamaño | Cada variante es muy pequeña (sku, color, capacidad y stock) |
-| Frecuencia de lectura | Siempre que se abre un producto hay que enseñar sus variantes y el stock, así que se leen siempre juntos |
-| Cardinalidad | Pocas: un producto tiene entre 1 y 10 variantes, no crecen sin parar |
-| Actualización | El stock cambia a menudo, pero se puede actualizar solo una variante con `$inc` y el operador `$` sin reescribir el producto |
-
-Así, con una sola consulta tengo el producto completo.
-
-**Reseñas → REFERENCIADAS en su propia colección**
-
-| Criterio | Motivo |
-|---|---|
-| Tamaño | Cada reseña tiene un texto que puede ser largo |
-| Frecuencia de lectura | No se necesitan siempre: solo se cargan las últimas cuando el cliente baja a verlas |
-| Cardinalidad | Un producto que se vende mucho puede tener **miles** de reseñas. Si estuvieran dentro, el documento crecería sin límite y podría llegar a los **16 MB** que permite MongoDB |
-| Actualización | Se añaden reseñas todo el rato, y cada una pertenece a un usuario y a un producto distintos |
-
-Cada reseña guarda `producto_id` y `usuario_id`, y cuando necesito juntar los datos uso `$lookup`.
-
-### 2.5 Identificadores, fechas, estados y campos opcionales
-
-- **Identificadores:** en productos y usuarios uso códigos propios (`PROD-001`, `USR-01`) porque son más fáciles de leer y de usar en las referencias. La validación comprueba que tengan ese formato. En las reseñas dejo el `ObjectId` que crea MongoDB, porque no necesitan un código especial.
-- **Fechas:** siempre como tipo `Date` de MongoDB (no como texto), para poder ordenar y filtrar por fechas.
-- **Estados:** un producto está activo (`activo: true`) o descatalogado (`activo: false`). No borro los productos porque pueden tener reseñas. El rol del usuario solo puede ser `cliente` o `admin`.
-- **Campos opcionales:** si un campo no aplica, no se guarda. Por ejemplo, un altavoz no tiene `capacidad` y un televisor no tiene `color`. `fecha_baja` solo aparece cuando un producto se desactiva.
-
-### 2.6 Límites del modelo
-
-- **Tamaño máximo de 16 MB por documento:** no hay problema, porque un producto con 10 variantes ocupa pocos KB. Las reseñas, que son lo que podría crecer, están fuera.
-- **Crecimiento de arrays:** el único array es `variantes` y tiene pocos elementos. Si una tienda tuviera productos con cientos de variantes, habría que sacarlas a otra colección.
-- **Duplicación:** en este modelo casi no hay datos repetidos. Lo malo es que para enseñar el nombre del usuario en una reseña necesito un `$lookup`.
-- **Consistencia:** si se borrara un producto, sus reseñas se quedarían apuntando a algo que no existe. Por eso uso el borrado lógico (`activo: false`).
-- **Operaciones incómodas:** sacar estadísticas de todas las variantes de toda la tienda obliga a usar `$unwind`, y la media de estrellas hay que calcularla con una agregación cada vez (no está guardada en el producto).
-
----
-
+ 
+### Incrustar o referenciar
+ 
+**Las variantes las he incrustado dentro del producto.** Son datos pequeños (sku, color, capacidad y stock) y siempre que alguien entra a ver un producto hay que enseñar sus variantes, así que se leen juntos. Además son pocas: un producto tiene entre 1 y 10 variantes y no van a crecer sin parar. Para cambiar el stock de una sola variante uso `$inc` con `variantes.$` y no hace falta reescribir el producto entero. Así con una sola consulta tengo todo el producto.
+ 
+**Las reseñas las he puesto en otra colección y las referencio con `producto_id` y `usuario_id`.** Un producto que se vende mucho puede tener miles de reseñas. Si las metiera dentro del producto, el documento crecería sin límite y podría llegar a los 16 MB, que es lo máximo que deja MongoDB por documento. Además las reseñas no hacen falta siempre, solo cuando el cliente baja a verlas, y se están añadiendo todo el rato. Cuando necesito juntar datos uso `$lookup`.
+ 
+### Identificadores, fechas, estados y campos opcionales
+ 
+- **Ids**: en productos y usuarios he puesto códigos propios (PROD-001, USR-01) porque se leen mejor y es más fácil referenciarlos. En las reseñas dejo el ObjectId que pone MongoDB solo.
+- **Fechas**: siempre como tipo Date, no como texto, para poder ordenar y filtrar.
+- **Estados**: un producto está activo o no (`activo: true/false`). Los productos no los borro porque pueden tener reseñas, solo los desactivo. El rol del usuario solo puede ser `cliente` o `admin`.
+- **Campos opcionales**: si un campo no tiene sentido, directamente no lo pongo. Por ejemplo, un altavoz no tiene capacidad y una tele no tiene color. `fecha_baja` solo aparece cuando se desactiva un producto.
+### Límites del modelo
+ 
+- **16 MB por documento**: no es un problema porque un producto ocupa muy poco y las reseñas, que es lo que crece, están fuera.
+- **Arrays**: el único array es `variantes` y tiene pocos elementos. Si hubiera productos con cientos de variantes habría que sacarlas a otra colección.
+- **Duplicación**: casi no hay datos repetidos. Lo malo es que para sacar el nombre del usuario de una reseña necesito un `$lookup`.
+- **Consistencia**: si borrara un producto, sus reseñas apuntarían a algo que ya no existe. Por eso uso el borrado lógico.
+- **Cosas incómodas**: para mirar el stock de todas las variantes hay que usar `$unwind`, y la valoración media no está guardada en el producto, hay que calcularla cada vez con una agregación.
 ## 3. Validación e índices
-
-### 3.1 Validación con `$jsonSchema`
-
-Script: [`scripts/01-colecciones-validacion.js`](scripts/01-colecciones-validacion.js)
-
-| Colección | Qué comprueba |
-|---|---|
-| `productos` | Campos obligatorios, `_id` con formato `PROD-000` (**formato**), `categoria` de una lista cerrada (**enum**), `precio` ≥ 0 (**rango**), al menos una variante, `stock` entero ≥ 0 |
-| `usuarios` | Campos obligatorios, `_id` con formato `USR-00`, email con formato válido, `rol` solo `cliente` o `admin` |
-| `resenas` | Campos obligatorios, `estrellas` entero entre 1 y 5 (**rango**), comentario de 500 caracteres como máximo, `fecha` de tipo fecha |
-
-Al final del script pruebo a meter documentos incorrectos (precio negativo, una categoría que no existe, una reseña de 7 estrellas y un email sin @) y MongoDB los rechaza todos.
-
-### 3.2 Índices
-
-Script: [`scripts/03-indices.js`](scripts/03-indices.js)
-
-| Índice | Campos | Consulta que acelera | Por qué ese orden |
-|---|---|---|---|
-| `idx_categoria_precio` (compuesto) | `{ categoria: 1, precio: -1 }` | P1 | Primero el campo que filtro por igualdad (categoría) y luego el que uso para ordenar (precio). Así los resultados ya salen ordenados del índice |
-| `idx_marca_precio` (compuesto) | `{ marca: 1, precio: 1 }` | P2 | Primero la marca (igualdad) y luego el precio (rango) |
-| `idx_producto_fecha` (compuesto) | `{ producto_id: 1, fecha: -1 }` en `resenas` | P4 y P5 | Busca solo las reseñas de ese producto y ya ordenadas de la más nueva a la más antigua |
-| `idx_texto_nombre` (texto) | `{ nombre: "text" }` | P7 | Permite buscar palabras dentro del nombre. Lo he puesto en español para que encuentre también plurales ("inalámbricos") |
-| `idx_email_unico` (único) | `{ email: 1 }` en `usuarios` | Registro y login | Impide que dos usuarios tengan el mismo email |
-
-**Coste:** cada índice ocupa espacio y hace que insertar o actualizar sea un poco más lento, porque MongoDB tiene que actualizar también el índice. En esta tienda compensa porque hay muchas más lecturas que escrituras. El índice de texto es el que más ocupa, porque guarda cada palabra del nombre por separado.
-
-### 3.3 Explain antes y después
-
-Comparo dos consultas con `explain("executionStats")`:
-
-| Consulta | | Etapa | Documentos examinados | Devueltos |
+ 
+### Validación
+ 
+Está en `scripts/01-colecciones-validacion.js`. He usado `$jsonSchema` en las tres colecciones:
+ 
+- **productos**: campos obligatorios, el `_id` tiene que tener el formato PROD-000, la categoría tiene que ser una de la lista (enum), el precio no puede ser negativo, tiene que haber al menos una variante y el stock tiene que ser un número entero mayor o igual que 0.
+- **usuarios**: campos obligatorios, el email tiene que tener formato de email y el rol solo puede ser cliente o admin.
+- **resenas**: campos obligatorios, las estrellas tienen que ser un entero entre 1 y 5, el comentario como mucho 500 caracteres y la fecha de tipo Date.
+Al final del script intento meter datos mal (precio negativo, una categoría que no existe, una reseña de 7 estrellas y un email sin @) y MongoDB no deja meter ninguno.
+ 
+### Índices
+ 
+Están en `scripts/03-indices.js`.
+ 
+1. **`{ categoria: 1, precio: -1 }`** (compuesto) para la pregunta 1. Primero va la categoría porque filtro por ella y luego el precio porque ordeno por él, así los resultados ya salen ordenados.
+2. **`{ marca: 1, precio: 1 }`** (compuesto) para la pregunta 2. Primero la marca y luego el precio, que es el rango.
+3. **`{ producto_id: 1, fecha: -1 }`** en resenas, para las preguntas 4 y 5. Busca solo las reseñas de ese producto y ya ordenadas de la más nueva a la más vieja.
+4. **`{ nombre: "text" }`** (de texto) para la pregunta 7. Sirve para buscar palabras en el nombre. Lo he puesto en español para que encuentre también "inalámbricos".
+5. **`{ email: 1 }`** único en usuarios, para que no se puedan repetir emails.
+Los índices ocupan espacio y hacen que insertar y actualizar sea un poco más lento, porque MongoDB tiene que actualizar también el índice. Aun así compensa, porque en una tienda se lee mucho más de lo que se escribe. El de texto es el que más ocupa porque guarda cada palabra del nombre.
+ 
+### Explain antes y después
+ 
+He comparado dos consultas con `explain("executionStats")`:
+ 
+| Consulta | | Etapa | Docs examinados | Devueltos |
 |---|---|---|---|---|
-| P1 (móviles por precio) | **Antes** | `COLLSCAN` + `SORT` | 12 (toda la colección) | 3 |
-| | **Después** | `IXSCAN` + `FETCH` | 3 | 3 |
-| P4 (últimas reseñas de PROD-001) | **Antes** | `COLLSCAN` + `SORT` | 40 (todas las reseñas) | 4 |
-| | **Después** | `IXSCAN` + `FETCH` | 4 | 4 |
-
-Antes de crear los índices, MongoDB tiene que leer **todos** los documentos (`COLLSCAN`) y después ordenarlos en memoria (`SORT`). Con el índice va directo a los que necesita (`IXSCAN`) y ya los tiene ordenados.
-
-Con tan pocos datos el tiempo es casi 0 ms en los dos casos, pero se ve en los documentos examinados. Con miles de productos la diferencia sería muy grande. Las capturas están en [`docs/evidencias/`](docs/evidencias/).
-
----
-
+| Móviles por precio | antes | COLLSCAN + SORT | 12 | 3 |
+| Móviles por precio | después | IXSCAN | 3 | 3 |
+| Reseñas de PROD-001 | antes | COLLSCAN + SORT | 40 | 4 |
+| Reseñas de PROD-001 | después | IXSCAN | 4 | 4 |
+ 
+Sin índice MongoDB se lee todos los documentos (COLLSCAN) y luego los ordena en memoria (SORT). Con el índice va directo a los que necesita (IXSCAN) y ya están ordenados. Como hay pocos datos, el tiempo sale 0 ms en los dos casos, pero se nota en los documentos examinados. Con miles de productos la diferencia sería bastante grande.
+ 
+Las capturas están en `docs/evidencias`.
+ 
 ## 4. Consultas y agregación
-
-Script: [`scripts/04-consultas.js`](scripts/04-consultas.js)
-
-### 4.1 CRUD
-
-| Operación | Qué hago |
-|---|---|
-| Insertar | Añado un producto nuevo (`PROD-013`, teclado Logitech) con `insertOne` |
-| Actualizar | Bajo el precio con `$set` y sumo 5 unidades de stock a una variante con `$inc` y `variantes.$` |
-| Desactivar | Pongo `activo: false` y `fecha_baja` en vez de borrarlo (borrado lógico) |
-| Eliminar | Borro una reseña con `deleteOne` |
-
-### 4.2 Consultas de las preguntas
-
-- **P1 y P2:** `find` con filtros combinados, ordenados por precio y paginados con `skip` y `limit`. Ordeno también por `_id` para que, si dos productos cuestan lo mismo, no cambien de página.
-- **P3:** `findOne` del producto, devolviendo solo nombre y variantes.
-- **P4:** las 5 últimas reseñas con un **`$lookup`** a `usuarios` para enseñar el nombre de quien la escribió.
-- **P6:** `$unwind` de las variantes para quedarme solo con las que tienen menos de 5 unidades.
-- **P7:** búsqueda con `$text` usando el índice de texto.
-
-### 4.3 Agregación compleja (P5: valoración media de cada producto)
-
+ 
+Todo está en `scripts/04-consultas.js`.
+ 
+### CRUD
+ 
+- **Insertar**: añado un producto nuevo (PROD-013, un teclado Logitech) con `insertOne`.
+- **Actualizar**: le bajo el precio con `$set` y le sumo 5 unidades a una variante con `$inc`.
+- **Desactivar**: le pongo `activo: false` y `fecha_baja` en vez de borrarlo.
+- **Eliminar**: borro una reseña con `deleteOne`.
+### Respuesta a cada pregunta
+ 
+**1. ¿Qué productos hay de una categoría, ordenados por precio?**
+ 
+```js
+db.productos.find({ categoria: "moviles", activo: true }, { nombre: 1, precio: 1 })
+  .sort({ precio: -1, _id: 1 }).skip(0).limit(2)
+```
+ 
+Saca los móviles del más caro al más barato, de 2 en 2. Para la página 2 se pone `skip(2)`. Ordeno también por `_id` para que, si dos productos cuestan lo mismo, no cambien de página.
+ 
+Resultado: iPhone 15 (899 €), Samsung Galaxy S24 (799,99 €) y, en la página 2, Xiaomi Redmi Note 13 (249,99 €).
+ 
+**2. ¿Qué productos de una marca cuestan entre un precio mínimo y uno máximo?**
+ 
+```js
+db.productos.find(
+  { marca: "Samsung", precio: { $gte: 500, $lte: 1000 }, activo: true },
+  { nombre: 1, precio: 1 }
+).sort({ precio: 1 })
+```
+ 
+Resultado: Samsung Galaxy S24 (799,99 €), Portátil Samsung Galaxy Book4 (849,99 €) y Televisor Samsung QLED 65 pulgadas (999,99 €).
+ 
+**3. ¿Qué variantes tiene un producto y cuánto stock queda de cada una?**
+ 
+```js
+db.productos.findOne({ _id: "PROD-001" }, { nombre: 1, variantes: 1 })
+```
+ 
+Como las variantes están dentro del producto, sale todo con una sola consulta.
+ 
+Resultado: Samsung Galaxy S24 tiene Negro 128GB con 12 unidades y Violeta 256GB con 3 unidades.
+ 
+**4. ¿Cuáles son las últimas reseñas de un producto?**
+ 
+```js
+db.resenas.aggregate([
+  { $match: { producto_id: "PROD-001" } },
+  { $sort: { fecha: -1 } },
+  { $limit: 5 },
+  { $lookup: { from: "usuarios", localField: "usuario_id", foreignField: "_id", as: "usuario" } },
+  { $unwind: "$usuario" },
+  { $project: { _id: 0, estrellas: 1, comentario: 1, fecha: 1, usuario: "$usuario.nombre" } }
+])
+```
+ 
+Uso `$lookup` para sacar el nombre del usuario, porque en la reseña solo está su id.
+ 
+Resultado: salen las 4 reseñas del Galaxy S24, de la más nueva a la más vieja. La primera es la de Laura Gómez del 21 de septiembre (5 estrellas, "Esperaba más por el precio") y la siguiente la de Marta Sánchez del 11 de septiembre (4 estrellas).
+ 
+**5. ¿Cuál es la valoración media de cada producto?**
+ 
+Esta es la agregación compleja, explicada en el apartado siguiente.
+ 
+Resultado: el mejor valorado es el Lenovo IdeaPad Slim 5 (4,75), luego el Samsung Galaxy S24 (4,25) y el JBL Flip 6 (4). El peor es el Samsung Galaxy Book4 (3).
+ 
+**6. ¿Qué productos tienen poco stock (menos de 5 unidades)?**
+ 
+```js
+db.productos.aggregate([
+  { $match: { activo: true } },
+  { $unwind: "$variantes" },
+  { $match: { "variantes.stock": { $lt: 5 } } },
+  { $project: { _id: 0, producto: "$nombre", sku: "$variantes.sku", stock: "$variantes.stock" } },
+  { $sort: { stock: 1 } }
+])
+```
+ 
+`$unwind` separa las variantes para poder mirar el stock de cada una por separado.
+ 
+Resultado: salen 8 variantes. La peor es el ratón Logitech gris claro, con 0 unidades, seguida de los Sony plata con 1, y el iPhone 15 azul y la tele Samsung, con 2 cada uno.
+ 
+**7. ¿Qué productos contienen una palabra en su nombre?**
+ 
+```js
+db.productos.find({ $text: { $search: "inalámbrico" }, activo: true }, { nombre: 1, precio: 1 })
+```
+ 
+Usa el índice de texto del nombre.
+ 
+Resultado: los auriculares Sony WH-1000XM5, los Xiaomi Redmi Buds 5 y el ratón Logitech MX Master 3S. El teclado Logitech que añado en el CRUD no sale porque lo he desactivado.
+ 
+### Agregación compleja (pregunta 5)
+ 
 ```js
 db.resenas.aggregate([
   { $group: { _id: "$producto_id", media: { $avg: "$estrellas" }, total_resenas: { $sum: 1 } } },
@@ -326,79 +282,55 @@ db.resenas.aggregate([
   { $sort: { media: -1 } }
 ])
 ```
-
-Tiene 5 etapas y usa `$group`, `$lookup` y `$unwind`:
-
-1. **`$group`**: junta todas las reseñas de cada producto y calcula la media de estrellas y cuántas reseñas tiene.
-2. **`$lookup`**: busca en `productos` los datos de cada producto.
-3. **`$unwind`**: el `$lookup` devuelve un array, y así lo convierto en un objeto normal.
-4. **`$project`**: elijo qué campos enseño y redondeo la media a 2 decimales.
-5. **`$sort`**: ordeno del mejor valorado al peor.
-
-**Resultado:** sale una lista con los 10 productos que tienen reseñas, su media y cuántas reseñas tiene cada uno.
-
-**¿Qué pasa si crecen los datos?** El `$group` tiene que leer **todas** las reseñas, así que si hubiera millones tardaría bastante. Lo bueno es que el `$lookup` se hace después de agrupar, así que solo busca una vez por producto y no una vez por reseña. Si la tienda creciera mucho, sería mejor guardar la media en el propio producto y actualizarla cada vez que llega una reseña nueva, para no calcularla siempre.
-
----
-
-## 5. Copias de seguridad, seguridad y límites
-
-### 5.1 Copia y restauración
-
-El procedimiento completo con `mongodump` y `mongorestore` está en [`scripts/05-backup.md`](scripts/05-backup.md). Resumen:
-
-```bash
-docker exec mongo-practica mongodump --db=tienda_electronica --out=/backup
-docker exec mongo-practica mongorestore --nsFrom="tienda_electronica.*" --nsTo="tienda_restaurada.*" /backup
-```
-
-Restauro en otra base de datos (`tienda_restaurada`) y compruebo que tenga el mismo número de documentos que la original.
-
-### 5.2 Usuarios y permisos
-
-| Usuario | Rol | Por qué |
-|---|---|---|
-| `app_tienda` | `readWrite` solo en `tienda_electronica` | Es el que usa la web. Puede leer y escribir, pero no crear usuarios ni tocar otras bases de datos |
-| `app_lectura` | `read` en `tienda_electronica` | Para informes o estadísticas, solo puede leer |
-| `admin_bd` | `dbAdmin` + 2FA | Solo para administrar (índices, validación…), nunca lo usa la aplicación |
-
+ 
+Lo que hace cada etapa:
+1. `$group` junta las reseñas de cada producto y saca la media de estrellas y cuántas tiene.
+2. `$lookup` busca en productos los datos de cada uno.
+3. `$unwind` convierte en objeto el array que devuelve el `$lookup`.
+4. `$project` elige los campos que quiero enseñar y redondea la media.
+5. `$sort` ordena del mejor valorado al peor.
+El resultado es una lista con los 10 productos que tienen reseñas, con su media y el número de reseñas.
+ 
+Si hubiera muchos más datos, el `$group` tendría que leerse todas las reseñas, así que con millones tardaría bastante. Lo bueno es que el `$lookup` va después de agrupar, así que solo busca una vez por producto y no una vez por reseña. Si la tienda creciera mucho, sería mejor guardar la media en el producto y actualizarla cada vez que llega una reseña nueva.
+ 
+## 5. Seguridad y límites
+ 
+### Usuarios y permisos
+ 
+- **app_tienda**: el que usa la web. Tiene `readWrite` solo en tienda_electronica, así que puede leer y escribir pero no crear usuarios ni tocar otras bases de datos.
+- **app_lectura**: solo `read`, para sacar informes.
+- **admin_bd**: para administrar (índices, validación...), con 2FA. La aplicación nunca lo usa.
 ```js
 use admin
 db.createUser({
   user: "app_tienda",
-  pwd: passwordPrompt(),   // la contraseña se pide al ejecutarlo, no se escribe en el código
+  pwd: passwordPrompt(),
   roles: [{ role: "readWrite", db: "tienda_electronica" }]
 })
 ```
-
-### 5.3 Datos a cifrar, anonimizar o excluir
-
-- **Cifrar:** la conexión con TLS y los discos con cifrado en reposo (Atlas lo hace por defecto). Las contraseñas de los usuarios nunca se guardan en texto plano.
-- **Anonimizar en pruebas:** el nombre y el email de los usuarios se cambian por datos falsos (`usuario1@test.com`) antes de pasar la base de datos a desarrollo.
-- **Excluir:** en esta práctica no guardo direcciones, teléfonos ni datos de pago. Si la tienda los necesitara, no deberían copiarse nunca a un entorno de pruebas.
-
-### 5.4 Cuándo MongoDB no sería la mejor opción
-
-1. **Los pagos y pedidos:** cuando un cliente paga, hay que restar el stock, cobrar y crear el pedido a la vez, y si algo falla tiene que deshacerse todo. Para eso es mejor una base de datos relacional como **PostgreSQL o MySQL**, que está pensada para transacciones.
-2. **Recomendaciones del tipo "los clientes que compraron esto también compraron…":** esto va de relaciones entre clientes y productos, y en MongoDB necesitaría muchos `$lookup`. Una base de datos de grafos como **Neo4j** lo hace mucho mejor.
-
-### 5.5 Datos históricos
-
-| Dato | Qué hago | Por qué |
-|---|---|---|
-| Productos descatalogados | Los conservo con `activo: false` | Tienen reseñas y pueden volver a venderse |
-| Reseñas | Las conservo mientras exista el producto | Son útiles para otros clientes |
-| Usuarios que borran su cuenta | Elimino sus datos personales y dejo sus reseñas como "usuario anónimo" | Lo pide el RGPD (derecho al olvido) |
-| Copias de seguridad | Guardo las de los últimos 30 días | Para recuperar algo si hay un fallo, sin acumular copias para siempre |
-
----
-
+ 
+Con `passwordPrompt()` la contraseña se pide al ejecutarlo y no se queda escrita en el código.
+ 
+### Qué cifrar, anonimizar o quitar
+ 
+- **Cifrar**: la conexión con TLS y los datos en disco (en Atlas viene activado). Las contraseñas de los usuarios nunca en texto plano.
+- **Anonimizar**: antes de pasar la base de datos a pruebas cambiaría los nombres y emails por datos falsos (usuario1@test.com...).
+- **No guardar**: no guardo direcciones, teléfonos ni datos de pago. Si hicieran falta, nunca se copiarían a pruebas.
+### Cuándo no usaría MongoDB
+ 
+1. **Para los pagos y los pedidos.** Cuando alguien paga hay que restar el stock, cobrar y crear el pedido a la vez, y si falla algo se tiene que deshacer todo. Para eso es mejor una base de datos relacional como PostgreSQL o MySQL, que está hecha para transacciones.
+2. **Para recomendaciones tipo "los que compraron esto también compraron...".** Son relaciones entre clientes y productos, y en MongoDB necesitaría un montón de `$lookup`. Una base de datos de grafos como Neo4j lo hace mucho mejor.
+### Datos históricos
+ 
+- **Productos descatalogados**: los dejo con `activo: false` porque tienen reseñas y se pueden volver a vender.
+- **Reseñas**: se quedan mientras exista el producto.
+- **Usuarios que borran la cuenta**: borro sus datos personales y sus reseñas se quedan como "usuario anónimo", que es lo que pide el RGPD.
+- **Copias de seguridad**: guardo las de los últimos 30 días y las más antiguas se borran.
 ## 6. Revisión
-
-- [x] Los scripts empiezan desde una base de datos vacía (`01` hace `dropDatabase`)
-- [x] Se ejecutan en orden: `01` → `02` → `03` → `04`
-- [x] Los datos son inventados y coherentes con una tienda de electrónica
-- [x] No hay contraseñas ni cadenas de conexión en el repositorio
-- [ ] Capturas de cada paso en [`docs/evidencias/`](docs/evidencias/)
-
+ 
+- Los scripts empiezan con la base de datos vacía.
+- Se ejecutan en orden: 01, 02, 03 y 04.
+- Los datos son inventados y tienen sentido para una tienda de electrónica.
+- No hay contraseñas ni cadenas de conexión en el repositorio.
+- Las capturas están en `docs/evidencias`.
 
