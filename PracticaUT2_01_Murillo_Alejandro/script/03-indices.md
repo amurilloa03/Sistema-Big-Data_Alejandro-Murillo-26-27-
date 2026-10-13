@@ -60,6 +60,7 @@ db.productos.find({ categoria: "moviles", activo: true }).sort({ precio: -1 }).e
 Sale `SORT` y dentro `COLLSCAN`: ha recorrido todo y luego lo ha ordenado en memoria.
 
 📸 Captura del "ANTES".
+![foto1](/PracticaUT2_01_Murillo_Alejandro/img/img3.1.png)
 
 ## Paso 3 · Crear el índice
 
