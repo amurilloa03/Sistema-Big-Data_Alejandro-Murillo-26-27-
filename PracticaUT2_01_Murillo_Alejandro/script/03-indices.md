@@ -244,3 +244,5 @@ P4 - últimas reseñas de PROD-001
 Si alguna etapa sale con un nombre un poco distinto no pasa nada. Lo importante es que antes salga `COLLSCAN`, después `IXSCAN`, y que bajen los documentos examinados.
 
 📸 Captura de todo el resultado: es la evidencia del explain antes y después.
+
+![Foto3.3](/PracticaUT2_01_Murillo_Alejandro/img/img3.3.png)
