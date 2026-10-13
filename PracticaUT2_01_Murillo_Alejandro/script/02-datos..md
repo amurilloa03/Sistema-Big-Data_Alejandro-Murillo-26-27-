@@ -215,5 +215,5 @@ Usuarios: 5
 Reseñas: 40
 ```
 
-![Foto2.1](/PracticaUT2_01_Murillo_Alejandro/img/img2.1.png)
+
 ![Foto2.2](/PracticaUT2_01_Murillo_Alejandro/img/img2.2.png)
