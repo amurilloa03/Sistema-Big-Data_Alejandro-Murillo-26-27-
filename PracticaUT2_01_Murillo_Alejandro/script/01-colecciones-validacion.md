@@ -185,5 +185,4 @@ OK - rechazada categoría que no está en la lista
 OK - rechazada reseña con 7 estrellas (máximo 5)
 OK - rechazado email con formato incorrecto
 ```
-
-> **Nota:** en `mongosh` los números enteros literales se guardan como `double`, por eso en los campos `bsonType: "int"` (como `stock` o `estrellas`) hay que usar `NumberInt(...)`.
+![Foto1.1](/PracticaUT2_01_Murillo_Alejandro/img/img1.1.png)

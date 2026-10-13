@@ -96,6 +96,7 @@ db.productos.find({ categoria: "moviles", activo: true }).sort({ precio: -1 }).e
 Ahora sale `IXSCAN` y ya no sale `SORT`, porque los datos vienen ordenados del índice.
 
 📸 Captura del "DESPUÉS".
+![Foto2](/PracticaUT2_01_Murillo_Alejandro/img/img3.2.png)
 
 ## Paso 5 · Lo mismo con las reseñas (pregunta 4)
 
