@@ -1,0 +1,29 @@
+CREATE CONSTRAINT c_lector_id IF NOT EXISTS
+FOR (l:Lector) REQUIRE l.id IS UNIQUE;
+
+CREATE CONSTRAINT c_libro_id IF NOT EXISTS
+FOR (b:Libro) REQUIRE b.id IS UNIQUE;
+
+CREATE CONSTRAINT c_autor_id IF NOT EXISTS
+FOR (a:Autor) REQUIRE a.id IS UNIQUE;
+
+CREATE CONSTRAINT c_genero_id IF NOT EXISTS
+FOR (g:Genero) REQUIRE g.id IS UNIQUE;
+
+CREATE CONSTRAINT c_club_id IF NOT EXISTS
+FOR (c:Club) REQUIRE c.id IS UNIQUE;
+
+CREATE INDEX idx_libro_titulo IF NOT EXISTS
+FOR (b:Libro) ON (b.titulo);
+
+CREATE INDEX idx_autor_nombre IF NOT EXISTS
+FOR (a:Autor) ON (a.nombre);
+
+CREATE INDEX idx_libro_anio IF NOT EXISTS
+FOR (b:Libro) ON (b.anio);
+
+CREATE INDEX idx_prestamo_libro IF NOT EXISTS
+FOR ()-[p:PRESTA_A]-() ON (p.libro);
+
+SHOW CONSTRAINTS;
+SHOW INDEXES;
